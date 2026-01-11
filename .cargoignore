@@ -1,0 +1,30 @@
+# Documentation files (not needed in published crate)
+CONSUMER_GUIDE.md
+INSTALLATION.md
+WALKTHROUGH.md
+
+# Build artifacts
+target/
+Cargo.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Temporary files
+*.orig
+*.bak
+
+#
+
