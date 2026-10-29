@@ -18,10 +18,10 @@
 //! init_logger("my-service", "info").unwrap();
 //!
 //! // Create a logger instance
-//! let logger = Logger::new("my-module");
+//! let logger = Logger::new(Some("my-module".to_string()));
 //!
-//! // Log with context
-//! logger.info("User logged in", |e| {
+//! // Log with fields
+//! logger.info_with("User logged in", |e| {
 //!     e.field("user_id", "user123");
 //! });
 //! ```

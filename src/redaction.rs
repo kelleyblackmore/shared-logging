@@ -20,10 +20,12 @@ impl Redaction {
         match self {
             Redaction::Full => "[REDACTED]".to_string(),
             Redaction::Partial => {
-                if value.len() <= 4 {
+                let char_count = value.chars().count();
+                if char_count <= 4 {
                     "[REDACTED]".to_string()
                 } else {
-                    format!("****{}", &value[value.len().saturating_sub(4)..])
+                    let tail: String = value.chars().skip(char_count - 4).collect();
+                    format!("****{}", tail)
                 }
             }
             Redaction::Hash => {
@@ -166,7 +168,7 @@ impl Default for Redactor {
 }
 
 /// Global redactor instance.
-static GLOBAL_REDACTOR: LazyLock<Redactor> = LazyLock::new(|| Redactor::new());
+static GLOBAL_REDACTOR: LazyLock<Redactor> = LazyLock::new(Redactor::new);
 
 /// Redact a value using the global redactor.
 pub fn redact(value: &str, redaction: Redaction) -> String {
@@ -192,6 +194,13 @@ mod tests {
         let result = Redaction::Partial.apply("1234567890");
         assert!(result.ends_with("7890"));
         assert!(result.starts_with("****"));
+    }
+
+    #[test]
+    fn test_redaction_partial_multibyte() {
+        // Must not panic when the last 4 bytes split a multi-byte character
+        assert_eq!(Redaction::Partial.apply("пароль-ключ"), "****ключ");
+        assert_eq!(Redaction::Partial.apply("ключ"), "[REDACTED]");
     }
 
     #[test]

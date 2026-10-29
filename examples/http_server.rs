@@ -1,16 +1,16 @@
 //! HTTP server example with middleware
 
 use axum::{
-    extract::Request,
     http::StatusCode,
     response::Json,
     routing::get,
     Router,
 };
 use serde_json::{json, Value};
+use shared_logging::middleware::LoggingMiddleware;
 use shared_logging::{init_logger, Logger, ContextBuilder};
 use std::net::SocketAddr;
-use tower::ServiceBuilder;
+use tower::{layer::layer_fn, ServiceBuilder};
 use tower_http::trace::TraceLayer;
 
 #[tokio::main]
@@ -25,10 +25,12 @@ async fn main() {
     // Build the application
     let app = Router::new()
         .route("/", get(root_handler))
-        .route("/users/:id", get(user_handler))
+        .route("/users/{id}", get(user_handler))
         .route("/health", get(health_handler))
         .layer(
             ServiceBuilder::new()
+                // Add request ID injection and request lifecycle logging
+                .layer(layer_fn(|inner| LoggingMiddleware::new(inner, "http-server")))
                 // Add tracing layer for request/response logging
                 .layer(TraceLayer::new_for_http())
         );
@@ -36,14 +38,12 @@ async fn main() {
     // Run the server
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     logger.info_with("Server listening", |e| {
-        e.field("address", &addr.to_string());
+        e.field("address", addr);
         e.field("port", 3000);
     });
 
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
 
 async fn root_handler() -> Json<Value> {

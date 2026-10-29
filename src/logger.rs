@@ -3,6 +3,7 @@
 use crate::context::Context;
 use crate::redaction::redact_field;
 use crate::schema::{Event, Level, StandardFields};
+use std::sync::OnceLock;
 use tracing::{event, Level as TracingLevel};
 use tracing_subscriber::{
     fmt::{self, time::ChronoUtc},
@@ -10,6 +11,19 @@ use tracing_subscriber::{
     util::SubscriberInitExt,
     EnvFilter, Registry,
 };
+
+/// Service name set by `init_logger`.
+static SERVICE_NAME: OnceLock<String> = OnceLock::new();
+
+/// Resolve the service name: the one passed to `init_logger`, then the
+/// `LOG_SERVICE_NAME` environment variable, then "unknown-service".
+fn service_name() -> String {
+    SERVICE_NAME
+        .get()
+        .cloned()
+        .or_else(|| std::env::var("LOG_SERVICE_NAME").ok())
+        .unwrap_or_else(|| "unknown-service".to_string())
+}
 
 /// Error type for logger initialization.
 #[derive(Debug, thiserror::Error)]
@@ -53,7 +67,7 @@ pub fn init_logger(service_name: &str, default_level: &str) -> Result<(), Logger
         .map_err(|e| LoggerError::Initialization(e.to_string()))?;
 
     // Set service name in a global context
-    std::env::set_var("LOG_SERVICE_NAME", service_name);
+    let _ = SERVICE_NAME.set(service_name.to_string());
 
     Ok(())
 }
@@ -77,15 +91,12 @@ impl Logger {
     /// ```no_run
     /// use shared_logging::Logger;
     ///
-    /// let logger = Logger::new("auth");
+    /// let logger = Logger::new(Some("auth".to_string()));
     /// logger.info("User authenticated");
     /// ```
     pub fn new(module: impl Into<Option<String>>) -> Self {
-        let service_name = std::env::var("LOG_SERVICE_NAME")
-            .unwrap_or_else(|_| "unknown-service".to_string());
-
         Self {
-            service_name,
+            service_name: service_name(),
             module: module.into(),
             context: Context::new(),
         }
@@ -93,11 +104,8 @@ impl Logger {
 
     /// Create a logger with context.
     pub fn with_context(module: impl Into<Option<String>>, context: Context) -> Self {
-        let service_name = std::env::var("LOG_SERVICE_NAME")
-            .unwrap_or_else(|_| "unknown-service".to_string());
-
         Self {
-            service_name,
+            service_name: service_name(),
             module: module.into(),
             context,
         }

@@ -182,7 +182,7 @@ fn extract_or_generate_request_id(headers: &HeaderMap) -> String {
         .get(REQUEST_ID_HEADER)
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string())
-        .unwrap_or_else(|| Context::generate_request_id())
+        .unwrap_or_else(Context::generate_request_id)
 }
 
 /// Extract client IP from request headers.

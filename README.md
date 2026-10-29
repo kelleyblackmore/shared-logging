@@ -132,7 +132,7 @@ shared-logging = { path = "../shared-logging" }
 
 The crate supports optional features:
 
-- **`http`**: HTTP middleware support (tower-http)
+- **`http`**: HTTP middleware support (tower)
 - **`otel`**: OpenTelemetry integration
 
 **Enabling Features:**
@@ -646,7 +646,7 @@ The crate includes runnable examples:
 cargo run --example basic_usage
 
 # HTTP server example (requires tokio)
-cargo run --example http_server
+cargo run --example http_server --features http
 
 # Error handling example
 cargo run --example error_handling
